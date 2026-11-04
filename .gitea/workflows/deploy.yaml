@@ -1,0 +1,62 @@
+name: Deploy LXD monitoring (direct)
+on:
+  push:
+    branches: [main]
+    paths: ['helm-chart/**', '.gitea/workflows/deploy.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VAULT_ADDR:      ${{ secrets.VAULT_ADDR }}
+      VAULT_ROLE_ID:   ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with: { version: 'v3.16.4' }
+      - uses: azure/setup-kubectl@v4
+
+      - name: Login to OpenBao
+        run: |
+          T=$(curl -sk -X POST "${VAULT_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${VAULT_ROLE_ID}\",\"secret_id\":\"${VAULT_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+          echo "::add-mask::$T"
+          echo "VAULT_TOKEN=$T" >> $GITHUB_ENV
+
+      - name: Fetch kubeconfig and LXD cert
+        run: |
+          mkdir -p ~/.kube /tmp/lxd
+          curl -sk -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            "${VAULT_ADDR}/v1/homelab/data/microk8s" \
+            | jq -r '.data.data.kubeconfig' > ~/.kube/config
+          chmod 600 ~/.kube/config
+          curl -sk -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            "${VAULT_ADDR}/v1/homelab/data/lxd" > /tmp/lxd/raw.json
+          jq -r '.data.data.client_cert' /tmp/lxd/raw.json > /tmp/lxd/tls.crt
+          jq -r '.data.data.client_key'  /tmp/lxd/raw.json > /tmp/lxd/tls.key
+          for f in ~/.kube/config /tmp/lxd/tls.crt /tmp/lxd/tls.key; do
+            [ -s "$f" ] || { echo "empty: $f"; exit 1; }
+          done
+
+      - name: Create/update TLS secret
+        run: |
+          kubectl create secret generic lxd-metrics-tls -n monitoring \
+            --from-file=tls.crt=/tmp/lxd/tls.crt \
+            --from-file=tls.key=/tmp/lxd/tls.key \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Helm deploy
+        run: |
+          helm upgrade --install grafan-lxd-monitoring-direct ./helm-chart \
+            --namespace monitoring --wait --timeout 3m
+
+      - name: Show result
+        if: always()
+        run: kubectl get secret lxd-metrics-tls,scrapeconfig -n monitoring
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf /tmp/lxd ~/.kube/config

@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: kube-prometheus-stack
+spec:
+  scheme: HTTPS
+  metricsPath: /1.0/metrics
+  scrapeInterval: {{ .Values.scrape.interval }}
+  staticConfigs:
+    - targets: [{{ .Values.lxd.host | quote }}]
+      labels:
+        lxd_host: {{ .Values.lxd.hostLabel }}
+  tlsConfig:
+    insecureSkipVerify: true
+    cert:
+      secret:
+        name: {{ .Values.tls.secretName }}
+        key: tls.crt
+    keySecret:
+      name: {{ .Values.tls.secretName }}
+      key: tls.key

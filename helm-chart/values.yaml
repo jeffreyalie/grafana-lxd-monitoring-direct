@@ -1,0 +1,12 @@
+lxd:
+  host: "10.0.0.250:8443"
+  hostLabel: lxd01
+
+scrape:
+  interval: 30s
+
+tls:
+  secretName: lxd-metrics-tls   # created by the workflow, not by Helm
+
+dashboard:
+  enabled: true
