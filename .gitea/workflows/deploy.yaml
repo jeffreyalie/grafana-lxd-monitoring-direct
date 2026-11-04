@@ -47,11 +47,13 @@ jobs:
             --from-file=tls.crt=/tmp/lxd/tls.crt \
             --from-file=tls.key=/tmp/lxd/tls.key \
             --dry-run=client -o yaml | kubectl apply -f -
+          echo "✅ Deployment successful!"
 
       - name: Helm deploy
         run: |
           helm upgrade --install grafan-lxd-monitoring-direct ./helm-chart \
             --namespace monitoring --wait --timeout 3m
+          echo "✅ Deployment successful!"
 
       - name: Show result
         if: always()
