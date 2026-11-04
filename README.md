@@ -1,4 +1,7 @@
 ### Grafana monitoring lxd resources direct
+
+![Grafana LXD monitoring dashboard](images/lxd-native.png)
+
 1. Reusing homelab/data/lxd
 
 It works. An unrestricted trusted client cert can read /1.0/metrics, so no new cert, no lxc config trust add --type=metrics, and no policy change. The runner policy already allows homelab/data/lxd, and the keys are the same client_cert and client_key your Go app reads.
