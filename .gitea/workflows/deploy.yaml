@@ -57,7 +57,11 @@ jobs:
 
       - name: Show result
         if: always()
-        run: kubectl get secret lxd-metrics-tls,scrapeconfig -n monitoring
+        run: # kubectl get secret lxd-metrics-tls,scrapeconfig -n monitoring
+          echo "Verifying deployment..."
+          kubectl get secret lxd-metrics-tls -n monitoring
+          kubectl get scrapeconfig -n monitoring
+          echo "✅ Verification successful!"
 
       - name: Cleanup
         if: always()
