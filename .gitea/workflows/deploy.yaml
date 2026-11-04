@@ -43,7 +43,7 @@ jobs:
 
       - name: Create/update TLS secret
         run: |
-          microk8s kubectl create secret generic lxd-metrics-tls -n monitoring \
+          kubectl create secret generic lxd-metrics-tls -n monitoring \
             --from-file=tls.crt=/tmp/lxd/tls.crt \
             --from-file=tls.key=/tmp/lxd/tls.key \
             --dry-run=client -o yaml | kubectl apply -f -
