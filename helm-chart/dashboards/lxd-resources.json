@@ -1,0 +1,47 @@
+{
+  "uid": "lxd-native",
+  "title": "LXD Resources (native API)",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-3h", "to": "now" },
+  "templating": { "list": [{
+    "name": "project", "type": "query", "label": "Project", "includeAll": true,
+    "multi": true, "refresh": 2,
+    "datasource": { "type": "prometheus", "uid": "prometheus" },
+    "query": "label_values(lxd_procs_total, project)"
+  }]},
+  "panels": [
+    { "id": 1, "type": "timeseries", "title": "CPU (cores)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (name) (rate(lxd_cpu_seconds_total{project=~\"$project\"}[5m]))", "legendFormat": "{{name}}" }] },
+    { "id": 2, "type": "timeseries", "title": "Memory used",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{ "expr": "lxd_memory_MemTotal_bytes{project=~\"$project\"} - lxd_memory_MemAvailable_bytes{project=~\"$project\"}", "legendFormat": "{{name}}" }] },
+    { "id": 3, "type": "timeseries", "title": "Network RX / TX",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        { "expr": "sum by (name) (rate(lxd_network_receive_bytes_total{project=~\"$project\"}[5m]))", "legendFormat": "{{name}} rx" },
+        { "expr": "sum by (name) (rate(lxd_network_transmit_bytes_total{project=~\"$project\"}[5m]))", "legendFormat": "{{name}} tx" }] },
+    { "id": 4, "type": "timeseries", "title": "Disk read / write",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" } },
+      "targets": [
+        { "expr": "sum by (name) (rate(lxd_disk_read_bytes_total{project=~\"$project\"}[5m]))", "legendFormat": "{{name}} read" },
+        { "expr": "sum by (name) (rate(lxd_disk_written_bytes_total{project=~\"$project\"}[5m]))", "legendFormat": "{{name}} write" }] },
+    { "id": 5, "type": "bargauge", "title": "Root filesystem used %",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } },
+      "targets": [{ "expr": "100 * (1 - lxd_filesystem_free_bytes{project=~\"$project\",mountpoint=\"/\"} / lxd_filesystem_size_bytes{project=~\"$project\",mountpoint=\"/\"})", "legendFormat": "{{name}}", "instant": true }] },
+    { "id": 6, "type": "timeseries", "title": "Processes",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "lxd_procs_total{project=~\"$project\"}", "legendFormat": "{{name}}" }] }
+  ]
+}

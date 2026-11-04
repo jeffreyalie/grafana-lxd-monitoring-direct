@@ -163,6 +163,8 @@ In your monitoring repo’s values.yaml, add this under prometheusSpec so Promet
 yaml
     scrapeConfigSelector: {}
     scrapeConfigNamespaceSelector: {}
+
+    scrapeConfigSelectorNilUsesHelmValues: false
 ```
 
 Metric names: verify them first with curl -k --cert ... --key ... https://10.0.0.250:8443/1.0/metrics | grep '^# TYPE', because the dashboard queries depend on them.
