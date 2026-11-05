@@ -1,0 +1,83 @@
+name: Destroy LXD monitoring (direct)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm'
+        required: true
+        type: string
+      delete_secret:
+        description: 'Also delete the lxd-metrics-tls secret (LXD client cert copy)'
+        type: boolean
+        default: true
+
+env:
+  RELEASE: grafan-lxd-monitoring-direct
+  NAMESPACE: monitoring
+  TLS_SECRET: lxd-metrics-tls
+
+jobs:
+  uninstall:
+    if: ${{ github.event.inputs.confirm == 'destroy' }}
+    runs-on: ubuntu-latest
+    env:
+      VAULT_ADDR:      ${{ secrets.VAULT_ADDR }}
+      VAULT_ROLE_ID:   ${{ secrets.VAULT_ROLE_ID }}
+      VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: 'v3.16.4'
+
+      - uses: azure/setup-kubectl@v4
+
+      - name: Fetch kubeconfig from OpenBao
+        run: |
+          T=$(curl -sk -X POST "${VAULT_ADDR}/v1/auth/approle/login" \
+            -d "{\"role_id\":\"${VAULT_ROLE_ID}\",\"secret_id\":\"${VAULT_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+          if [ -z "$T" ] || [ "$T" = "null" ]; then
+            echo "ERROR: OpenBao login failed"; exit 1
+          fi
+          echo "::add-mask::$T"
+
+          mkdir -p ~/.kube
+          curl -sk -H "X-Vault-Token: $T" \
+            "${VAULT_ADDR}/v1/homelab/data/microk8s" \
+            | jq -r '.data.data.kubeconfig' > ~/.kube/config
+          chmod 600 ~/.kube/config
+          [ -s ~/.kube/config ] || { echo "ERROR: empty kubeconfig"; exit 1; }
+
+      - name: Helm uninstall
+        run: |
+          helm uninstall "${RELEASE}" \
+            --namespace "${NAMESPACE}" \
+            --wait || echo "Release not found, skipping."
+
+      - name: Cleanup leftover dashboard ConfigMap
+        run: |
+          # Removes the Grafana dashboard if it was left behind outside the release
+          kubectl delete configmap "${RELEASE}-dashboard" \
+            --namespace "${NAMESPACE}" --ignore-not-found
+
+      - name: Delete TLS secret (if requested)
+        if: ${{ github.event.inputs.delete_secret == 'true' }}
+        run: |
+          kubectl delete secret "${TLS_SECRET}" \
+            --namespace "${NAMESPACE}" --ignore-not-found
+
+      - name: Show what remains
+        if: always()
+        run: |
+          kubectl get scrapeconfig,configmap,secret -n "${NAMESPACE}" \
+            -l 'grafana_dashboard=1' || true
+          kubectl get scrapeconfig -n "${NAMESPACE}" || true
+          kubectl get secret "${TLS_SECRET}" -n "${NAMESPACE}" || true
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: rm -f ~/.kube/config
