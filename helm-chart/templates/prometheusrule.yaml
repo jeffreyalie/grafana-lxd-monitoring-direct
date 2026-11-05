@@ -38,11 +38,11 @@ spec:
             summary: {{ `"{{ $labels.name }} memory over 90%"` }}
 
         - alert: LXDCpuHigh
-          expr: sum by (name, project) (rate(lxd_cpu_seconds_total[5m])) / on (name, project) lxd_cpu_effective_total > 0.9
+          expr: sum by (name, project) (rate(lxd_cpu_seconds_total[5m])) / on (name, project) lxd_cpu_effective_total > 0.5
           for: 15m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} CPU over 90% of its cores"` }}
+            summary: {{ `"{{ $labels.name }} CPU over 50% of its cores"` }}
 
         - alert: LXDInstanceGone
           expr: lxd_procs_total offset 5m unless lxd_procs_total
