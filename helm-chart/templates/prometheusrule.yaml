@@ -1,3 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: kube-prometheus-stack     # required, see below
+spec:
+  groups:
+    - name: lxd
+      rules:
         - alert: LXDScrapeTargetDown
           expr: up{lxd_host="lxd01"} == 0
           for: 2m
@@ -10,39 +21,39 @@
           for: 10m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} root filesystem over 85%"` }}
+            summary: "{{ $labels.name }} root filesystem over 85%"
 
         - alert: LXDFilesystemCritical
           expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/"} / lxd_filesystem_size_bytes{mountpoint="/"}) > 95
           for: 5m
           labels: { severity: critical }
           annotations:
-            summary: {{ `"{{ $labels.name }} root filesystem over 95%"` }}
+            summary: "{{ $labels.name }} root filesystem over 95%"
 
         - alert: LXDMemoryHigh
           expr: 100 * (1 - lxd_memory_MemAvailable_bytes / lxd_memory_MemTotal_bytes) > 90
           for: 10m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} memory over 90%"` }}
+            summary: "{{ $labels.name }} memory over 90%"
 
         - alert: LXDCpuHigh
           expr: sum by (name, project) (rate(lxd_cpu_seconds_total[5m])) / on (name, project) lxd_cpu_effective_total > 0.9
           for: 15m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} CPU over 90% of its cores"` }}
+            summary: "{{ $labels.name }} CPU over 90% of its cores"
 
         - alert: LXDInstanceGone
           expr: lxd_procs_total offset 5m unless lxd_procs_total
           for: 1m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} stopped or disappeared"` }}
+            summary: "{{ $labels.name }} stopped or disappeared"
 
         - alert: LXDNetworkErrors
           expr: sum by (name) (rate(lxd_network_receive_errs_total[5m]) + rate(lxd_network_transmit_errs_total[5m])) > 1
           for: 10m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} network errors"` }}
+            summary: "{{ $labels.name }} network errors"
