@@ -55,6 +55,20 @@
     { "id": 7, "type": "table", "title": "Firing alerts",
       "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "ALERTS{alertstate=\"firing\", alertname=~\"LXD.*\"}", "format": "table", "instant": true }] }
+      "targets": [{ "expr": "ALERTS{alertstate=\"firing\", alertname=~\"LXD.*\"}", "format": "table", "instant": true }] },
+    { "id": 8, "type": "timeseries", "title": "VM CPU % of cores (alert at 50%)",
+      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "min": 0, "max": 1,
+          "custom": { "thresholdsStyle": { "mode": "line" } },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "red", "value": 0.5 }
+          ]}
+        }
+      },
+      "targets": [{ "expr": "sum by (name) (rate(lxd_cpu_seconds_total{project=~\"$project\", type=\"virtual-machine\", mode!=\"idle\"}[5m])) / on (name) lxd_cpu_effective_total{project=~\"$project\", type=\"virtual-machine\"}", "legendFormat": "{{name}}" }] }
   ]
 }

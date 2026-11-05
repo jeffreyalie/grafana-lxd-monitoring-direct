@@ -37,12 +37,22 @@ spec:
           annotations:
             summary: {{ `"{{ $labels.name }} memory over 90%"` }}
 
-        - alert: LXDCpuHigh
-          expr: sum by (name, project) (rate(lxd_cpu_seconds_total[5m])) / on (name, project) lxd_cpu_effective_total > 0.5
-          for: 15m
+        - alert: LXDVmCpuHigh
+          expr: |
+            sum by (name, project) (rate(lxd_cpu_seconds_total{type="virtual-machine", mode!="idle"}[5m]))
+            / on (name, project) lxd_cpu_effective_total{type="virtual-machine"}
+            > 0.5
+          for: 5m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} CPU over 50% of its cores"` }}
+            summary: {{ `"VM {{ $labels.name }} CPU over 50% ({{ $value | humanizePercentage }})"` }}
+
+        # - alert: LXDCpuHigh
+        #   expr: sum by (name, project) (rate(lxd_cpu_seconds_total[5m])) / on (name, project) lxd_cpu_effective_total > 0.9
+        #   for: 15m
+        #   labels: { severity: warning }
+        #   annotations:
+        #     summary: {{ `"{{ $labels.name }} CPU over 90% of its cores"` }}
 
         - alert: LXDInstanceGone
           expr: lxd_procs_total offset 5m unless lxd_procs_total
