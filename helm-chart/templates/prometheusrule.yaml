@@ -16,12 +16,12 @@ spec:
           annotations:
             summary: "LXD metrics endpoint unreachable"
 
-        - alert: LXDFilesystemWarning
-          expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/"} / lxd_filesystem_size_bytes{mountpoint="/"}) > 70
+        - alert: LXDVmFilesystemWarning
+          expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/", type="virtual-machine"} / lxd_filesystem_size_bytes{mountpoint="/", type="virtual-machine"}) > 70
           for: 10m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"{{ $labels.name }} root filesystem over 70%"` }}
+            summary: {{ `"VM {{ $labels.name }} root filesystem over 70%"` }}
 
         - alert: LXDFilesystemCritical
           expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/"} / lxd_filesystem_size_bytes{mountpoint="/"}) > 95
