@@ -10,6 +10,15 @@
     "datasource": { "type": "prometheus", "uid": "prometheus" },
     "query": "label_values(lxd_procs_total, project)"
   }]},
+  "annotations": { "list": [{
+    "name": "LXD alerts",
+    "enable": true,
+    "iconColor": "red",
+    "datasource": { "type": "prometheus", "uid": "prometheus" },
+    "expr": "ALERTS{alertstate=\"firing\", alertname=~\"LXD.*\"}",
+    "titleFormat": "{{alertname}}",
+    "textFormat": "{{name}} {{severity}}"
+  }]},
   "panels": [
     { "id": 1, "type": "timeseries", "title": "CPU (cores)",
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
@@ -42,6 +51,10 @@
     { "id": 6, "type": "timeseries", "title": "Processes",
       "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "lxd_procs_total{project=~\"$project\"}", "legendFormat": "{{name}}" }] }
+      "targets": [{ "expr": "lxd_procs_total{project=~\"$project\"}", "legendFormat": "{{name}}" }] },
+    { "id": 7, "type": "table", "title": "Firing alerts",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "ALERTS{alertstate=\"firing\", alertname=~\"LXD.*\"}", "format": "table", "instant": true }] }
   ]
 }
