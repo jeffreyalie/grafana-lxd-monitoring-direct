@@ -16,19 +16,19 @@ spec:
           annotations:
             summary: "LXD metrics endpoint unreachable"
 
-        - alert: LXDVmFilesystemWarning
-          expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/", type="virtual-machine"} / lxd_filesystem_size_bytes{mountpoint="/", type="virtual-machine"}) > 70
-          for: 10m
+        - alert: LXDFilesystemWarning
+          expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/"} / lxd_filesystem_size_bytes{mountpoint="/"}) > 50
+          for: 1m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"VM {{ $labels.name }} root filesystem over 70%"` }}
+            summary: {{ `"{{ $labels.name }} root filesystem over 50%"` }}
 
         - alert: LXDFilesystemCritical
-          expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/"} / lxd_filesystem_size_bytes{mountpoint="/"}) > 60
+          expr: 100 * (1 - lxd_filesystem_free_bytes{mountpoint="/"} / lxd_filesystem_size_bytes{mountpoint="/"}) > 95
           for: 5m
           labels: { severity: critical }
           annotations:
-            summary: {{ `"{{ $labels.name }} root filesystem over 60%"` }}
+            summary: {{ `"{{ $labels.name }} root filesystem over 95%"` }}
 
         - alert: LXDMemoryHigh
           expr: 100 * (1 - lxd_memory_MemAvailable_bytes / lxd_memory_MemTotal_bytes) > 90
@@ -37,22 +37,12 @@ spec:
           annotations:
             summary: {{ `"{{ $labels.name }} memory over 90%"` }}
 
-        - alert: LXDVmCpuHigh
-          expr: |
-            sum by (name, project) (rate(lxd_cpu_seconds_total{type="virtual-machine", mode!="idle"}[5m]))
-            / on (name, project) lxd_cpu_effective_total{type="virtual-machine"}
-            > 0.5
-          for: 5m
+        - alert: LXDCpuHigh
+          expr: sum by (name, project) (rate(lxd_cpu_seconds_total[5m])) / on (name, project) lxd_cpu_effective_total > 0.5
+          for: 15m
           labels: { severity: warning }
           annotations:
-            summary: {{ `"VM {{ $labels.name }} CPU over 50% ({{ $value | humanizePercentage }})"` }}
-
-        # - alert: LXDCpuHigh
-        #   expr: sum by (name, project) (rate(lxd_cpu_seconds_total[5m])) / on (name, project) lxd_cpu_effective_total > 0.9
-        #   for: 15m
-        #   labels: { severity: warning }
-        #   annotations:
-        #     summary: {{ `"{{ $labels.name }} CPU over 90% of its cores"` }}
+            summary: {{ `"{{ $labels.name }} CPU over 50% of its cores"` }}
 
         - alert: LXDInstanceGone
           expr: lxd_procs_total offset 5m unless lxd_procs_total
